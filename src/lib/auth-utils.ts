@@ -1,16 +1,19 @@
+// Path: src/lib/auth-utils.ts
+// Update your auth utilities
 "use server";
 
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/db";
 import { redirect } from "next/navigation";
 
-export async function checkAdmin() {
+export const checkAdmin = async () => {
   const { userId } = auth();
-
+  
   if (!userId) {
-    redirect("/sign-in");
+    redirect("/admin/login");
   }
 
+  // For development, you might want to comment out the database check initially
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: { role: true },

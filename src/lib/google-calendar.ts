@@ -1,14 +1,23 @@
 import { google } from "googleapis";
 import { prisma } from "@/lib/db";
 import { AppointmentWithRelations } from "@/types/appointment-types";
+import path from "path";
 
-const oauth2Client = new google.auth.OAuth2(
-  process.env.GOOGLE_CLIENT_ID,
-  process.env.GOOGLE_CLIENT_SECRET,
-  `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/google/callback`
+// Load the service account credentials
+const CREDENTIALS = require('../../.google-credentials.json');
+const CALENDAR_ID = 'rooobyrm999@gmail.com'; // Your email is already set correctly
+
+const SCOPES = ['https://www.googleapis.com/auth/calendar'];
+
+// Configure JWT auth client
+const auth = new google.auth.JWT(
+  CREDENTIALS.client_email,
+  undefined,
+  CREDENTIALS.private_key,
+  SCOPES
 );
 
-const calendar = google.calendar({ version: "v3", auth: oauth2Client });
+const calendar = google.calendar({ version: 'v3', auth });
 
 // Function to get the authorization URL
 export function getGoogleAuthUrl() {
@@ -61,17 +70,13 @@ export async function addToGoogleCalendar(appointmentId: string) {
       throw new Error("Appointment not found");
     }
 
-    // For admin's calendar, we'll use the default credentials
-    await setGoogleCredentials(process.env.ADMIN_USER_ID!);
-
     const event = {
       summary: `${appointment.service.name} Appointment`,
-      description: `Service: ${appointment.service.name}
-Duration: ${appointment.service.duration} minutes
-Customer: ${appointment.guestName || appointment.user?.firstName}
-Email: ${appointment.guestEmail || appointment.user?.email}
-Phone: ${appointment.guestPhone || "N/A"}
-Notes: ${appointment.notes || "No notes"}`,
+      description: `Service: ${appointment.service.name}\n` +
+        `Duration: ${appointment.service.duration} minutes\n` +
+        `Customer: ${appointment.guestName || appointment.user?.firstName}\n` +
+        `Email: ${appointment.guestEmail || appointment.user?.email}\n` +
+        `Phone: ${appointment.guestPhone || "N/A"}`,
       start: {
         dateTime: appointment.startTime.toISOString(),
         timeZone: "Europe/Bucharest",
@@ -80,19 +85,11 @@ Notes: ${appointment.notes || "No notes"}`,
         dateTime: appointment.endTime.toISOString(),
         timeZone: "Europe/Bucharest",
       },
-      attendees: [
-        {
-          email: appointment.guestEmail || appointment.user?.email || "",
-          displayName:
-            appointment.guestName || appointment.user?.firstName || "",
-        },
-      ],
     };
 
     const response = await calendar.events.insert({
-      calendarId: "primary",
+      calendarId: CALENDAR_ID,
       requestBody: event,
-      sendUpdates: "all",
     });
 
     await prisma.appointment.update({
@@ -104,7 +101,7 @@ Notes: ${appointment.notes || "No notes"}`,
 
     return response.data;
   } catch (error) {
-    console.error("[ADD_TO_GOOGLE_CALENDAR]", error);
+    console.error("[GOOGLE_CALENDAR_ERROR]", error);
     throw error;
   }
 }

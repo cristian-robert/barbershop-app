@@ -48,22 +48,20 @@ export async function createAppointment(
   data: CreateAppointmentInput
 ): Promise<ActionState<AppointmentWithRelations>> {
   try {
-    const { userId } = auth();
-
-    // Check if the time slot is available
+    // Check for existing appointments in the same time slot
     const existingAppointment = await prisma.appointment.findFirst({
       where: {
         OR: [
           {
             AND: [
-              { date: { lte: data.startTime } },
-              { date: { gt: data.startTime } },
+              { startTime: { lte: data.startTime } },
+              { endTime: { gt: data.startTime } },
             ],
           },
           {
             AND: [
-              { date: { lt: data.endTime } },
-              { date: { gte: data.endTime } },
+              { startTime: { lt: data.endTime } },
+              { endTime: { gte: data.endTime } },
             ],
           },
         ],
@@ -78,18 +76,21 @@ export async function createAppointment(
       };
     }
 
+    // Create the appointment
     const appointment = await prisma.appointment.create({
       data: {
-        userId: userId || undefined,
         serviceId: data.serviceId,
-        date: data.startTime,
-        status: "PENDING",
+        startTime: data.startTime,
+        endTime: data.endTime,
         guestName: data.guestName,
         guestEmail: data.guestEmail,
         guestPhone: data.guestPhone,
-        notes: data.notes,
+        status: "CONFIRMED",
       },
-      include: appointmentInclude,
+      include: {
+        service: true,
+        user: true,
+      },
     });
 
     // Add to Google Calendar
@@ -97,10 +98,11 @@ export async function createAppointment(
       await addToGoogleCalendar(appointment.id);
     } catch (error) {
       console.error("[GOOGLE_CALENDAR_ERROR]", error);
-      // Don't fail the appointment creation if Google Calendar fails
+      // Continue with the appointment creation even if Google Calendar fails
     }
 
     revalidatePath("/appointments");
+    revalidatePath("/admin");
 
     return {
       isSuccess: true,

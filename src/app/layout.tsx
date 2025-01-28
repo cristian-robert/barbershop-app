@@ -1,42 +1,27 @@
-import { ClerkProvider } from "@clerk/nextjs";
-import { Analytics } from "@/components/analytics";
-import { ThemeProvider } from "@/components/providers/theme-provider";
-import { Toaster } from "@/components/ui/toaster";
-import { Header } from "@/components/header";
-import { Inter } from "next/font/google";
-import "./globals.css";
+// Path: src/app/layout.tsx
+// This is your root layout - it should keep all your existing styles
+import { ClerkProvider } from '@clerk/nextjs'
+import { Inter } from 'next/font/google'
+import { Toaster } from "sonner"
+import "./globals.css" // Make sure to keep your global styles
 
-const inter = Inter({ subsets: ["latin"] });
-
-export const metadata = {
-  title: "Barbershop App",
-  description: "Book your next haircut with ease",
-};
+const inter = Inter({ subsets: ['latin'] })
 
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode;
+  children: React.ReactNode
 }) {
   return (
-    <ClerkProvider>
-      <html lang="en" suppressHydrationWarning>
+    <ClerkProvider publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}>
+      <html lang="en">
         <body className={inter.className}>
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="system"
-            enableSystem
-            disableTransitionOnChange
-          >
-            <div className="relative flex min-h-screen flex-col">
-              <Header />
-              <main className="flex-1">{children}</main>
-            </div>
-            <Analytics />
-            <Toaster />
-          </ThemeProvider>
+          <main className="min-h-screen flex flex-col">
+            {children}
+          </main>
+          <Toaster />
         </body>
       </html>
     </ClerkProvider>
-  );
+  )
 }

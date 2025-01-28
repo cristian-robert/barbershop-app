@@ -3,20 +3,24 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { UserButton } from "@clerk/nextjs";
+import { UserButton, SignInButton, useUser } from "@clerk/nextjs";
 import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
 
 export function MainNav() {
   const pathname = usePathname();
+  const { user } = useUser();
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    // Check admin status
-    fetch("/api/auth/check-admin")
-      .then((res) => res.json())
-      .then((data) => setIsAdmin(data.isAdmin))
-      .catch(() => setIsAdmin(false));
-  }, []);
+    if (user) {
+      // Check admin status
+      fetch("/api/auth/check-admin")
+        .then((res) => res.json())
+        .then((data) => setIsAdmin(data.isAdmin))
+        .catch(() => setIsAdmin(false));
+    }
+  }, [user]);
 
   const routes = [
     {
@@ -63,7 +67,13 @@ export function MainNav() {
           </Link>
         ))}
       </div>
-      <UserButton afterSignOutUrl="/" />
+      {user ? (
+        <UserButton afterSignOutUrl="/" />
+      ) : (
+        <SignInButton mode="modal">
+          <Button variant="outline">Sign In</Button>
+        </SignInButton>
+      )}
     </nav>
   );
 }

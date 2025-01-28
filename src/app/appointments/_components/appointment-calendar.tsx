@@ -1,10 +1,11 @@
 "use client";
 
-import * as React from "react";
-import { Calendar } from "@/components/ui/calendar";
-import { add, format } from "date-fns";
-import { cn } from "@/lib/utils";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import { Service } from "@prisma/client";
+import { createAppointment } from "@/actions/appointment-actions";
+import { useToast } from "@/components/ui/use-toast";
 import {
   Dialog,
   DialogContent,
@@ -16,46 +17,43 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useToast } from "@/components/ui/use-toast";
-import { Service } from "@prisma/client";
-import { createAppointment } from "@/actions/appointment-actions";
+import { useEffect } from "react";
 
 interface AppointmentCalendarProps {
   services: Service[];
 }
 
 export function AppointmentCalendar({ services }: AppointmentCalendarProps) {
-  const [date, setDate] = React.useState<Date | undefined>(new Date());
-  const [selectedTime, setSelectedTime] = React.useState<string>("");
-  const [selectedService, setSelectedService] = React.useState<Service>();
-  const [guestName, setGuestName] = React.useState("");
-  const [guestEmail, setGuestEmail] = React.useState("");
-  const [guestPhone, setGuestPhone] = React.useState("");
-  const [isLoading, setIsLoading] = React.useState(false);
+  const [date, setDate] = useState<Date | undefined>();
+  const [selectedTime, setSelectedTime] = useState<string>("");
+  const [selectedService, setSelectedService] = useState<Service | null>(null);
+  const [guestName, setGuestName] = useState("");
+  const [guestEmail, setGuestEmail] = useState("");
+  const [guestPhone, setGuestPhone] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
-  // Generate available time slots based on service duration
-  const getAvailableTimeSlots = React.useCallback(() => {
-    if (!selectedService) return [];
+  // Debug logging
+  console.log("Current State:", {
+    date,
+    selectedTime,
+    selectedService,
+    guestName,
+    guestEmail,
+    guestPhone,
+  });
 
-    const slots = [];
-    const startHour = 9; // 9 AM
-    const endHour = 17; // 5 PM
-    const duration = selectedService.duration;
-
-    for (let hour = startHour; hour < endHour; hour++) {
-      for (let minute = 0; minute < 60; minute += duration) {
-        if (hour === endHour - 1 && minute + duration > 60) continue;
-        slots.push(
-          `${hour.toString().padStart(2, "0")}:${minute
-            .toString()
-            .padStart(2, "0")}`
-        );
-      }
-    }
-
-    return slots;
-  }, [selectedService]);
+  // Available time slots (you can modify these)
+  const timeSlots = [
+    "09:00",
+    "10:00",
+    "11:00",
+    "12:00",
+    "13:00",
+    "14:00",
+    "15:00",
+    "16:00",
+  ];
 
   const handleBookAppointment = async () => {
     if (!date || !selectedTime || !selectedService) {
@@ -123,151 +121,115 @@ export function AppointmentCalendar({ services }: AppointmentCalendarProps) {
     }
   };
 
+  useEffect(() => {
+    console.log('Current state:', {
+      date,
+      selectedTime,
+      selectedService,
+    });
+  }, [date, selectedTime, selectedService]);
+
   return (
-    <div className="flex flex-col space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-        {services.map((service) => (
-          <Button
-            key={service.id}
-            variant={selectedService?.id === service.id ? "default" : "outline"}
-            className={cn(
-              "w-full justify-start px-4 py-6",
-              selectedService?.id === service.id &&
-                "bg-primary text-primary-foreground"
-            )}
-            onClick={() => setSelectedService(service)}
-          >
-            <div className="text-left">
-              <div className="font-semibold">{service.name}</div>
-              <div className="text-sm opacity-90">
-                {service.duration} min • ${service.price}
+    <div className="space-y-4">
+      {/* Services Selection */}
+      <div className="grid gap-2">
+        <h3 className="font-medium">Select Service</h3>
+        <div className="grid gap-2">
+          {services.map((service) => (
+            <Button
+              key={service.id}
+              variant={selectedService?.id === service.id ? "default" : "outline"}
+              className="w-full justify-start"
+              onClick={() => {
+                setSelectedService(service);
+                console.log("Service selected:", service);
+              }}
+            >
+              <div className="flex justify-between w-full">
+                <span>{service.name}</span>
+                <span>${service.price}</span>
               </div>
-            </div>
-          </Button>
-        ))}
+            </Button>
+          ))}
+        </div>
       </div>
 
-      <div className="flex flex-col space-y-4 md:flex-row md:space-x-4 md:space-y-0">
+      {/* Date Selection */}
+      <div className="grid gap-2">
+        <h3 className="font-medium">Select Date</h3>
         <Calendar
           mode="single"
           selected={date}
-          onSelect={setDate}
+          onSelect={(newDate) => {
+            setDate(newDate);
+            console.log("Date selected:", newDate);
+          }}
+          disabled={(date) => date < new Date() || date.getDay() === 0} // Disable past dates and Sundays
           className="rounded-md border"
-          disabled={(date) => date < new Date()}
         />
+      </div>
 
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-            {getAvailableTimeSlots().map((time) => (
-              <Button
-                key={time}
-                variant={selectedTime === time ? "default" : "outline"}
-                className={cn(
-                  "w-full",
-                  selectedTime === time && "bg-primary text-primary-foreground"
-                )}
-                onClick={() => setSelectedTime(time)}
-              >
-                {time}
-              </Button>
-            ))}
-          </div>
-
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button
-                className="w-full"
-                disabled={!date || !selectedTime || !selectedService}
-              >
-                Book Appointment
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
-              <DialogHeader>
-                <DialogTitle>Book Appointment</DialogTitle>
-                <DialogDescription>
-                  Please provide your contact information below.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="service" className="text-right">
-                    Service
-                  </Label>
-                  <Input
-                    id="service"
-                    value={selectedService?.name}
-                    className="col-span-3"
-                    readOnly
-                  />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="date" className="text-right">
-                    Date
-                  </Label>
-                  <Input
-                    id="date"
-                    value={date ? format(date, "PPP") : ""}
-                    className="col-span-3"
-                    readOnly
-                  />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="time" className="text-right">
-                    Time
-                  </Label>
-                  <Input
-                    id="time"
-                    value={selectedTime}
-                    className="col-span-3"
-                    readOnly
-                  />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="name" className="text-right">
-                    Name
-                  </Label>
-                  <Input
-                    id="name"
-                    value={guestName}
-                    onChange={(e) => setGuestName(e.target.value)}
-                    className="col-span-3"
-                  />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="email" className="text-right">
-                    Email
-                  </Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={guestEmail}
-                    onChange={(e) => setGuestEmail(e.target.value)}
-                    className="col-span-3"
-                  />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="phone" className="text-right">
-                    Phone
-                  </Label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    value={guestPhone}
-                    onChange={(e) => setGuestPhone(e.target.value)}
-                    className="col-span-3"
-                  />
-                </div>
-              </div>
-              <DialogFooter>
-                <Button onClick={handleBookAppointment} disabled={isLoading}>
-                  {isLoading ? "Booking..." : "Confirm Booking"}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+      {/* Time Selection */}
+      <div className="grid gap-2">
+        <h3 className="font-medium">Select Time</h3>
+        <div className="grid grid-cols-4 gap-2">
+          {timeSlots.map((time) => (
+            <Button
+              key={time}
+              variant={selectedTime === time ? "default" : "outline"}
+              onClick={() => {
+                setSelectedTime(time);
+                console.log("Time selected:", time);
+              }}
+            >
+              {time}
+            </Button>
+          ))}
         </div>
       </div>
+
+      {/* Guest Information */}
+      <div className="grid gap-2">
+        <h3 className="font-medium">Your Information</h3>
+        <input
+          type="text"
+          placeholder="Name"
+          value={guestName}
+          onChange={(e) => setGuestName(e.target.value)}
+          className="border p-2 rounded"
+        />
+        <input
+          type="email"
+          placeholder="Email"
+          value={guestEmail}
+          onChange={(e) => setGuestEmail(e.target.value)}
+          className="border p-2 rounded"
+        />
+        <input
+          type="tel"
+          placeholder="Phone"
+          value={guestPhone}
+          onChange={(e) => setGuestPhone(e.target.value)}
+          className="border p-2 rounded"
+        />
+      </div>
+
+      {/* Book Button */}
+      <Button
+        className="w-full"
+        disabled={!date || !selectedTime || !selectedService}
+        onClick={handleBookAppointment}
+      >
+        {!date ? (
+          "Please select a date"
+        ) : !selectedService ? (
+          "Please select a service"
+        ) : !selectedTime ? (
+          "Please select a time"
+        ) : (
+          "Book Appointment"
+        )}
+      </Button>
     </div>
   );
 }

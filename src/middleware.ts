@@ -1,24 +1,37 @@
+// Path: src/middleware.ts
+// Update your middleware to handle auth properly
 import { authMiddleware } from "@clerk/nextjs";
+import { NextResponse } from "next/server";
 
 export default authMiddleware({
-  // Routes that can be accessed while signed out
+  // Make all routes public by default
   publicRoutes: [
     "/",
+    "/services",
+    "/about",
+    "/contact",
+    "/api/webhook",
+    "/api/uploadthing",
     "/sign-in",
     "/sign-up",
-    "/appointments",
-    "/services",
-    "/api/webhook/clerk",
-    "/api/webhook/stripe",
+    "/admin/login",
   ],
-  // Routes that can always be accessed, and have
-  // no authentication information
-  ignoredRoutes: ["/api/webhook/clerk", "/api/webhook/stripe"],
+  
+  afterAuth(auth, req) {
+    // Only protect /admin routes
+    if (req.nextUrl.pathname.startsWith("/admin") && 
+        !req.nextUrl.pathname.startsWith("/admin/login")) {
+      if (!auth.userId) {
+        const signInUrl = new URL('/admin/login', req.url);
+        return NextResponse.redirect(signInUrl);
+      }
+    }
+
+    // Allow all other routes
+    return NextResponse.next();
+  }
 });
 
 export const config = {
-  // Protects all routes, including api/trpc.
-  // See https://clerk.com/docs/references/nextjs/auth-middleware
-  // for more information about configuring your Middleware
   matcher: ["/((?!.+\\.[\\w]+$|_next).*)", "/", "/(api|trpc)(.*)"],
 };
