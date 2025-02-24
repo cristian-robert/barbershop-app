@@ -28,8 +28,14 @@ function Calendar({
           buttonVariants({ variant: "outline" }),
           "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100"
         ),
-        nav_button_previous: "absolute left-1",
-        nav_button_next: "absolute right-1",
+        nav_button_previous: {
+          className: "absolute left-1",
+          "aria-label": "Previous month",
+        },
+        nav_button_next: {
+          className: "absolute right-1",
+          "aria-label": "Next month",
+        },
         table: "w-full border-collapse space-y-1",
         head_row: "flex",
         head_cell:
@@ -42,7 +48,7 @@ function Calendar({
         ),
         day_range_end: "day-range-end",
         day_selected:
-          "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
+          "bg-[#0056b3] text-white hover:bg-[#004899] hover:text-white focus:bg-[#004899] focus:text-white",
         day_today: "bg-accent text-accent-foreground",
         day_outside:
           "day-outside text-muted-foreground opacity-50 aria-selected:bg-accent/50 aria-selected:text-muted-foreground aria-selected:opacity-30",

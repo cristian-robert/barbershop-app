@@ -122,7 +122,7 @@ export function AppointmentCalendar({ services }: AppointmentCalendarProps) {
   };
 
   useEffect(() => {
-    console.log('Current state:', {
+    console.log("Current state:", {
       date,
       selectedTime,
       selectedService,
@@ -138,7 +138,9 @@ export function AppointmentCalendar({ services }: AppointmentCalendarProps) {
           {services.map((service) => (
             <Button
               key={service.id}
-              variant={selectedService?.id === service.id ? "default" : "outline"}
+              variant={
+                selectedService?.id === service.id ? "default" : "outline"
+              }
               className="w-full justify-start"
               onClick={() => {
                 setSelectedService(service);
@@ -159,13 +161,13 @@ export function AppointmentCalendar({ services }: AppointmentCalendarProps) {
         <h3 className="font-medium">Select Date</h3>
         <Calendar
           mode="single"
-          selected={date}
-          onSelect={(newDate) => {
-            setDate(newDate);
-            console.log("Date selected:", newDate);
+          selected={selectedDate}
+          onSelect={(date) => {
+            console.log("Date selected:", date);
+            setSelectedDate(date);
           }}
-          disabled={(date) => date < new Date() || date.getDay() === 0} // Disable past dates and Sundays
-          className="rounded-md border"
+          disabled={(date) => date < new Date() || date.getDay() === 0}
+          className="mx-auto"
         />
       </div>
 
@@ -220,15 +222,13 @@ export function AppointmentCalendar({ services }: AppointmentCalendarProps) {
         disabled={!date || !selectedTime || !selectedService}
         onClick={handleBookAppointment}
       >
-        {!date ? (
-          "Please select a date"
-        ) : !selectedService ? (
-          "Please select a service"
-        ) : !selectedTime ? (
-          "Please select a time"
-        ) : (
-          "Book Appointment"
-        )}
+        {!date
+          ? "Please select a date"
+          : !selectedService
+          ? "Please select a service"
+          : !selectedTime
+          ? "Please select a time"
+          : "Book Appointment"}
       </Button>
     </div>
   );

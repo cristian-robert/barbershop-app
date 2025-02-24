@@ -1,8 +1,7 @@
-// Path: src/app/admin/settings/_components/settings-form.tsx
-// Settings form component
-
 "use client";
 
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -13,97 +12,223 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import * as z from "zod";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { siteSettingsSchema, type SiteSettings } from "@/types/site-settings";
+import { updateSiteSettings } from "@/actions/site-settings-actions";
+import { toast } from "sonner";
 
-const formSchema = z.object({
-  businessName: z.string().min(2, {
-    message: "Business name must be at least 2 characters.",
-  }),
-  email: z.string().email({
-    message: "Please enter a valid email address.",
-  }),
-  phone: z.string().min(10, {
-    message: "Phone number must be at least 10 digits.",
-  }),
-  address: z.string().min(5, {
-    message: "Address must be at least 5 characters.",
-  }),
-});
+interface SettingsFormProps {
+  initialData?: SiteSettings;
+}
 
-export function SettingsForm() {
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      businessName: "",
-      email: "",
-      phone: "",
-      address: "",
+export function SettingsForm({ initialData }: SettingsFormProps) {
+  const form = useForm<SiteSettings>({
+    resolver: zodResolver(siteSettingsSchema),
+    defaultValues: initialData || {
+      theme: {
+        primaryColor: "#000000",
+        secondaryColor: "#ffffff",
+        accentColor: "#cccccc",
+        fontSize: "medium",
+        fontFamily: "Inter",
+      },
+      business: {
+        name: "",
+        description: "",
+        address: "",
+        phone: "",
+        email: "",
+        socialLinks: {},
+      },
+      booking: {
+        minAdvanceHours: 24,
+        maxAdvanceDays: 30,
+        timeSlotDuration: 30,
+        allowGuestBooking: true,
+        requireDeposit: false,
+      },
+      content: {
+        homepageTitle: "",
+        homepageDescription: "",
+        aboutText: "",
+        cancellationPolicy: "",
+        privacyPolicy: "",
+      },
+      notifications: {
+        enableEmailNotifications: true,
+        enableSMSNotifications: false,
+        reminderHours: 24,
+        customEmailTemplates: {
+          booking: "",
+          confirmation: "",
+          reminder: "",
+          cancellation: "",
+        },
+      },
     },
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    console.log(values);
-    // TODO: Implement settings update
+  async function onSubmit(data: SiteSettings) {
+    try {
+      const result = await updateSiteSettings(data);
+      if (result.isSuccess) {
+        toast.success(result.message);
+      } else {
+        toast.error(result.message);
+      }
+    } catch (error) {
+      toast.error("Something went wrong");
+    }
   }
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-        <FormField
-          control={form.control}
-          name="businessName"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Business Name</FormLabel>
-              <FormControl>
-                <Input placeholder="Your Barbershop Name" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="email"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Contact Email</FormLabel>
-              <FormControl>
-                <Input type="email" placeholder="contact@example.com" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="phone"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Contact Phone</FormLabel>
-              <FormControl>
-                <Input type="tel" placeholder="+1 (555) 000-0000" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="address"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Business Address</FormLabel>
-              <FormControl>
-                <Input placeholder="123 Main St, City, State" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <Button type="submit">Save Changes</Button>
+        <Tabs defaultValue="theme" className="w-full">
+          <TabsList>
+            <TabsTrigger value="theme">Theme</TabsTrigger>
+            <TabsTrigger value="business">Business</TabsTrigger>
+            <TabsTrigger value="booking">Booking</TabsTrigger>
+            <TabsTrigger value="content">Content</TabsTrigger>
+            <TabsTrigger value="notifications">Notifications</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="theme">
+            <Card>
+              <CardHeader>
+                <CardTitle>Theme Settings</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="theme.primaryColor"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Primary Color</FormLabel>
+                      <FormControl>
+                        <Input type="color" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                {/* Add other theme fields */}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="business">
+            <Card>
+              <CardHeader>
+                <CardTitle>Business Information</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="business.name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Business Name</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Your Business Name" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                {/* Add other business fields */}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="booking">
+            <Card>
+              <CardHeader>
+                <CardTitle>Booking Settings</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="booking.allowGuestBooking"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center justify-between">
+                      <FormLabel>Allow Guest Booking</FormLabel>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                {/* Add other booking fields */}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="content">
+            <Card>
+              <CardHeader>
+                <CardTitle>Content Settings</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="content.homepageTitle"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Homepage Title</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Welcome to our barbershop"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                {/* Add other content fields */}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="notifications">
+            <Card>
+              <CardHeader>
+                <CardTitle>Notification Settings</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="notifications.enableEmailNotifications"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center justify-between">
+                      <FormLabel>Enable Email Notifications</FormLabel>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                {/* Add other notification fields */}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+
+        <div className="flex justify-end space-x-4">
+          <Button type="submit">Save Changes</Button>
+        </div>
       </form>
     </Form>
   );

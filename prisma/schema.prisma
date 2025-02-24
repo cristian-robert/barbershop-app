@@ -80,6 +80,73 @@ model Offer {
   updatedAt   DateTime  @updatedAt
 }
 
+model Popup {
+  id          String    @id @default(cuid())
+  title       String
+  content     String
+  type        PopupType @default(MODAL)
+  active      Boolean   @default(true)
+  startDate   DateTime?
+  endDate     DateTime?
+  delay       Int       @default(0) // Delay in seconds before showing
+  frequency   PopupFrequency @default(ONCE_PER_SESSION)
+  position    PopupPosition? // For toast-style popups
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model MediaAsset {
+  id          String    @id @default(cuid())
+  name        String
+  type        MediaType
+  url         String
+  thumbnailUrl String?
+  size        Int      // File size in bytes
+  mimeType    String
+  alt         String?  // Alt text for images
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model SiteSettings {
+  id        String   @id @default(cuid())
+  data      Json
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([active])
+}
+
+enum PopupType {
+  MODAL
+  TOAST
+  BANNER
+}
+
+enum PopupFrequency {
+  ONCE
+  ONCE_PER_SESSION
+  EVERY_VISIT
+  CUSTOM
+}
+
+enum PopupPosition {
+  TOP
+  TOP_LEFT
+  TOP_RIGHT
+  BOTTOM
+  BOTTOM_LEFT
+  BOTTOM_RIGHT
+  CENTER
+}
+
+enum MediaType {
+  IMAGE
+  VIDEO
+  DOCUMENT
+}
+
 enum AppointmentStatus {
   PENDING
   CONFIRMED
